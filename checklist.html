@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist DevSecOps — General Express Voyages</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f4f0; color: #1a1a18; min-height: 100vh; }
+  header { background: #1A3557; color: white; padding: 20px 24px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p { font-size: 13px; opacity: 0.7; margin-top: 3px; }
+  .global { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 24px; background: #fff; border-bottom: 1px solid #e8e8e4; }
+  .stat { text-align: center; padding: 10px; background: #f4f4f0; border-radius: 8px; }
+  .stat-n { font-size: 22px; font-weight: 600; }
+  .stat-l { font-size: 11px; color: #6b6b68; margin-top: 2px; }
+  .g-bar-wrap { height: 6px; background: #e0e0da; margin: 0 24px 0; }
+  .g-bar { height: 6px; background: #3B6D11; border-radius: 3px; width: 0%; transition: width .4s; }
+  .container { padding: 16px 24px; max-width: 860px; margin: 0 auto; }
+  .phase { background: #fff; border-radius: 10px; border: 1px solid #e0e0da; margin-bottom: 14px; overflow: hidden; }
+  .phase-hdr { padding: 10px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .phase-hdr:hover { filter: brightness(0.97); }
+  .phase-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .phase-cnt { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 10px; }
+  .phase-arrow { font-size: 11px; opacity: 0.6; transition: transform .2s; }
+  .phase-arrow.open { transform: rotate(90deg); }
+  .phase-bar { height: 3px; background: #e8e8e4; }
+  .phase-fill { height: 3px; background: #3B6D11; transition: width .3s; }
+  .items { padding: 0 16px 10px; display: none; }
+  .items.open { display: block; }
+  .item { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f0ec; align-items: flex-start; }
+  .cb { width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid #bbb; flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; background: #fff; }
+  .cb.done { background: #3B6D11; border-color: #3B6D11; }
+  .cb.done::after { content: ''; display: block; width: 9px; height: 5px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+  .item-body { flex: 1; }
+  .item-title { font-size: 12px; font-weight: 500; line-height: 1.4; }
+  .item-title.done-text { text-decoration: line-through; color: #aaa; }
+  .item-note { font-size: 11px; color: #6b6b68; margin-top: 3px; line-height: 1.55; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+  .b-crit { background: #FFEBEE; color: #B71C1C; }
+  .b-sec  { background: #FFF8E1; color: #7B5200; }
+  .b-new  { background: #E3F2FD; color: #0D47A1; }
+  .actions { display: flex; gap: 8px; padding: 16px 24px 0; max-width: 860px; margin: 0 auto; }
+  .btn { padding: 7px 14px; border-radius: 6px; border: 1px solid #ccc; background: #fff; font-size: 12px; cursor: pointer; color: #333; }
+  .btn:hover { background: #f0f0ec; }
+  .btn-danger { border-color: #e57373; color: #c62828; }
+  .btn-danger:hover { background: #FFEBEE; }
+  .save-hint { font-size: 11px; color: #6b6b68; padding: 8px 24px 16px; max-width: 860px; margin: 0 auto; }
+  @media (max-width: 600px) { .global { grid-template-columns: repeat(2,1fr); } .actions { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Checklist DevSecOps — General Express Voyages</h1>
+  <p>Projet Full-Stack · Evrard NOUMBI · Avril–Juin 2026</p>
+</header>
+
+<div class="global">
+  <div class="stat"><div class="stat-n" id="g-total" style="color:#1A3557">0</div><div class="stat-l">tâches totales</div></div>
+  <div class="stat"><div class="stat-n" id="g-done" style="color:#2E7D32">0</div><div class="stat-l">complétées</div></div>
+  <div class="stat"><div class="stat-n" id="g-left" style="color:#B71C1C">0</div><div class="stat-l">restantes</div></div>
+  <div class="stat"><div class="stat-n" id="g-pct" style="color:#1A3557">0%</div><div class="stat-l">avancement</div></div>
+</div>
+<div class="g-bar-wrap"><div class="g-bar" id="g-bar"></div></div>
+
+<div class="actions">
+  <button class="btn" onclick="expandAll()">Tout déplier</button>
+  <button class="btn" onclick="collapseAll()">Tout replier</button>
+  <button class="btn" onclick="showOnlyRemaining()">Afficher restantes</button>
+  <button class="btn" onclick="showAll()">Afficher tout</button>
+  <button class="btn btn-danger" onclick="resetAll()">Réinitialiser</button>
+</div>
+<div class="save-hint">Les cases cochées sont sauvegardées automatiquement dans votre navigateur (localStorage).</div>
+
+<div class="container" id="phases"></div>
+
+<script>
+const KEY = 'gev_checklist_v1';
+
+const data = [
+  {
+    id:"p0", title:"Phase 0 — Conception finale", hdrBg:"#EEEDFE", titleClr:"#3C3489", cntBg:"#534AB7", cntClr:"#EEEDFE",
+    items:[
+      {id:"p0-1", title:"Schéma DB finalisé (dbdiagram.io)", badge:"crit", note:"Supprimer cle_idempotence_paiement de reservations. Annoter le champ role 'cache Keycloak'. Limiter webhook_payload à varchar(4096)."},
+      {id:"p0-2", title:"Scripts Flyway V1__init_schema.sql créés", badge:"crit", note:"Transformer le schéma en SQL exécutable versionné. Index obligatoires : qr_code_token, utilisateur_id+date_action (journaux), voyage_id+statut (reservations)."},
+      {id:"p0-3", title:"Maquettes Figma — 6 écrans critiques", badge:"sec", note:"Connexion · Recherche trajets · Plan de sièges · Paiement Mobile Money · Billet QR · Interface scan agent."},
+      {id:"p0-4", title:"Matrice des flux documentée", badge:"sec", note:"Flux paiement (verrou Redis → PayUnit → webhook → DB). Flux KYC (upload → EN_ATTENTE → admin → notif). Flux scan billet (QR → HMAC → marquer UTILISE)."},
+      {id:"p0-5", title:"Compte PayUnit sandbox obtenu", badge:"crit", note:"Clés API MTN MoMo + Orange Money sandbox. Ne pas attendre le Sprint 3 — les délais peuvent être surprenants."},
+    ]
+  },
+  {
+    id:"p1", title:"Phase 1 — Setup infrastructure (Docker)", hdrBg:"#E6F1FB", titleClr:"#0C447C", cntBg:"#185FA5", cntClr:"#E6F1FB",
+    items:[
+      {id:"p1-1", title:"docker-compose.yml complet (9 services)", badge:"crit", note:"PostgreSQL 16 · Redis 7 (AOF activé) · Keycloak 24 · Vault 1.17 · Nginx · MinIO · Prometheus · Grafana · Alertmanager. Health checks sur chaque service."},
+      {id:"p1-2", title:"Fichier .env.example versionné dans Git", badge:"crit", note:"Toutes les variables attendues sans valeurs. Le .env réel dans .gitignore. Jamais un secret dans un fichier versionné."},
+      {id:"p1-3", title:"Keycloak — Realm 'gev-dev' configuré", badge:"crit", note:"Client public + PKCE (mobile). Client confidentiel (backend). Brute force : 5 échecs → lock 30 min. Exporter config JSON → Git."},
+      {id:"p1-4", title:"HashiCorp Vault — initialisé et configuré", badge:"crit", note:"Unseal keys sécurisés. AppRole activé (role_id + secret_id). Moteur KV v2. Audit log activé. Policy backend (lecture seule sur son périmètre)."},
+      {id:"p1-5", title:"Vault — tous les secrets chargés", badge:"crit", note:"DB password · Keycloak client_secret · PayUnit API key · HMAC webhook secret · Firebase service account · SMTP password · MinIO keys · JWT signing key."},
+      {id:"p1-6", title:"Nginx — config sécurisée de base", badge:"sec", note:"TLS 1.3. Rate limiting (10r/s sur /api/auth). Headers : HSTS, X-Frame-Options, X-Content-Type-Options, CSP. Proxy pass vers Spring Boot."},
+      {id:"p1-7", title:"MinIO — bucket 'kyc-documents' configuré", badge:"sec", note:"Accès privé (pas d'URL publique). Accès signé temporaire uniquement (15 min). Chiffrement at-rest activé."},
+      {id:"p1-8", title:"Prometheus + Grafana — dashboards de base", badge:"new", note:"Scraping Spring Boot Actuator /actuator/prometheus. Dashboard JVM + HTTP rate + Redis + DB pool. Alerte si API down > 1 min."},
+    ]
+  },
+  {
+    id:"p2", title:"Phase 2 — Setup technique (code)", hdrBg:"#EAF3DE", titleClr:"#27500A", cntBg:"#3B6D11", cntClr:"#EAF3DE",
+    items:[
+      {id:"p2-1", title:"Dépôts GitHub créés (backend + mobile)", badge:"crit", note:"Branche main protégée (PR obligatoire + status checks verts). Branche develop créée. .gitignore configuré (.env, target/, node_modules/, *.keystore)."},
+      {id:"p2-2", title:"GitFlow initialisé + conventions de commit", badge:"sec", note:"Branches : main, develop, feature/US-{id}-{desc}, hotfix/*. Commits : feat: / fix: / sec: / docs: / test: / chore:. 0 commit direct sur main."},
+      {id:"p2-3", title:"GitHub Projects — Kanban configuré", badge:"sec", note:"Colonnes : Backlog · Sprint courant · En cours · En revue · Terminé. Issues pour toutes les US du Sprint 0. Milestones par sprint."},
+      {id:"p2-4", title:"Spring Boot 3 — boilerplate généré (Initializr)", badge:"crit", note:"Dépendances : Spring Web, Security, Data JPA, Data Redis, Flyway, Actuator, Micrometer, Validation, Lombok, MapStruct, Spring Boot Test."},
+      {id:"p2-5", title:"Spring Boot — intégration Vault configurée", badge:"crit", note:"spring-cloud-vault-config. application.yml pointe Vault (0 secret en dur). Test : l'app refuse de démarrer si Vault est inaccessible."},
+      {id:"p2-6", title:"Spring Boot — intégration Keycloak configurée", badge:"crit", note:"spring-boot-starter-oauth2-resource-server. JWT issuer-uri → Keycloak. Test : /actuator/health public, /api/** exige JWT valide."},
+      {id:"p2-7", title:"Flyway — migration V1 exécutée avec succès", badge:"crit", note:"Schéma complet en base. Toutes les tables, index, FK. Reproductible en 1 commande : mvn flyway:migrate."},
+      {id:"p2-8", title:"React Native CLI — projet initialisé", badge:"crit", note:"Dépendances : react-navigation, redux-toolkit, rtk-query, react-native-svg, async-storage, ssl-pinning, @react-native-firebase/messaging, camera."},
+      {id:"p2-9", title:"SonarCloud + Snyk — liés aux deux dépôts", badge:"sec", note:"Quality Gate : coverage ≥ 70%, 0 blocker, 0 critical. Snyk webhook actif. Badges de statut dans les README."},
+      {id:"p2-10", title:"Stratégie de tests définie et documentée", badge:"sec", note:"Packages test organisés (unit / integration / e2e). WireMock pour PayUnit sandbox. TestContainers pour PostgreSQL + Redis en intégration."},
+    ]
+  },
+  {
+    id:"p3", title:"Phase 3 — Pipeline CI/CD (DevSecOps)", hdrBg:"#FAEEDA", titleClr:"#633806", cntBg:"#854F0B", cntClr:"#FAEEDA",
+    items:[
+      {id:"p3-1", title:"GitHub Actions — workflow squelette créé", badge:"crit", note:"ci.yml (push develop + PR→main) et cd-staging.yml (déclenchement manuel après CI vert)."},
+      {id:"p3-2", title:"CI — étapes 1-3 : lint + tests + SAST", badge:"crit", note:"Checkstyle (Java) + ESLint (RN). JUnit avec rapport coverage. SonarQube/Cloud scan avec Quality Gate bloquant."},
+      {id:"p3-3", title:"CI — étape 4 : SCA (Snyk)", badge:"crit", note:"snyk test --severity-threshold=high sur backend et mobile. Bloquant si CVE CVSS ≥ 7.0. Rapport en artefact GitHub Actions."},
+      {id:"p3-4", title:"CI — étapes 5-7 : build + Docker + Trivy", badge:"crit", note:"mvn package. Docker BuildKit multi-stage (image < 200 Mo). trivy image --exit-code 1 --severity CRITICAL. Push ghcr.io si tout vert."},
+      {id:"p3-5", title:"CI — étape 8 : tests intégration (Newman)", badge:"sec", note:"Collection Postman JSON dans le repo. newman run avec variables staging. Rapport HTML en artefact."},
+      {id:"p3-6", title:"CD Staging — déploiement automatisé SSH", badge:"sec", note:"SSH → VPS. docker compose pull + up -d. Health check post-déploiement : /actuator/health → 200 en < 30 secondes."},
+      {id:"p3-7", title:"DAST — OWASP ZAP baseline sur staging", badge:"new", note:"ZAP scan sur URL staging après déploiement. Bloquant si finding HIGH/CRITICAL. Rapport HTML en artefact. Obligatoire avant release."},
+      {id:"p3-8", title:"README de setup — 'one command launch'", badge:"sec", note:"Prérequis, clone, cp .env.example .env, docker compose up -d, vérification health. Un jury doit lancer l'env en < 10 min."},
+    ]
+  },
+  {
+    id:"p4", title:"Phase 4 — Validation finale (avant soutenance)", hdrBg:"#F1EFE8", titleClr:"#444441", cntBg:"#5F5E5A", cntClr:"#F1EFE8",
+    items:[
+      {id:"p4-1", title:"Test de charge JMeter — 50 users simultanés", badge:"sec", note:"50 users réservent le même voyage simultanément. Vérifier : 0 double réservation, p95 < 200 ms sur recherche."},
+      {id:"p4-2", title:"Test de concurrence Redis — verrou atomique", badge:"crit", note:"100 requêtes simultanées sur le même siège. Résultat attendu : 1 seul verrou accordé, 99 retournent 409. Loggé et documenté."},
+      {id:"p4-3", title:"Rapports Snyk + SonarQube exportés en PDF", badge:"sec", note:"Captures + exports PDF des deux dashboards. Intégrés dans le dossier de soutenance."},
+      {id:"p4-4", title:"Rapport DAST ZAP — 0 finding HIGH/CRITICAL", badge:"sec", note:"Export HTML du rapport ZAP final. Findings résiduels : justification documentée pour chacun."},
+      {id:"p4-5", title:"Démo end-to-end répétée 3 fois", badge:"crit", note:"Inscription → KYC → recherche → siège → paiement sandbox → QR Code → scan agent. Chronométré < 3 minutes. Sur appareil physique Android."},
+      {id:"p4-6", title:"Backup & restore testé", badge:"new", note:"Simuler crash PostgreSQL. Restaurer depuis backup. Vérifier réservations intactes. RTO mesuré et documenté."},
+    ]
+  }
+];
+
+let state = {};
+
+function load() {
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) { state = {}; }
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function updateStats() {
+  let total = 0, done = 0;
+  data.forEach(phase => {
+    const pd = phase.items.filter(i => state[i.id]).length;
+    const pct = Math.round(pd / phase.items.length * 100);
+    const pb = document.getElementById('pb-' + phase.id);
+    const cnt = document.getElementById('cnt-' + phase.id);
+    if (pb) pb.style.width = pct + '%';
+    if (cnt) cnt.textContent = pd + ' / ' + phase.items.length;
+    total += phase.items.length;
+    done += pd;
+  });
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('g-total').textContent = total;
+  document.getElementById('g-done').textContent = done;
+  document.getElementById('g-left').textContent = total - done;
+  document.getElementById('g-pct').textContent = pct + '%';
+  document.getElementById('g-bar').style.width = pct + '%';
+}
+
+function toggle(id) {
+  state[id] = !state[id];
+  save();
+  const cb = document.getElementById('cb-' + id);
+  const t  = document.getElementById('t-'  + id);
+  if (state[id]) { cb.classList.add('done'); t.classList.add('done-text'); }
+  else { cb.classList.remove('done'); t.classList.remove('done-text'); }
+  updateStats();
+}
+
+function togglePhase(id) {
+  const items = document.getElementById('items-' + id);
+  const arrow = document.getElementById('arr-' + id);
+  const open = items.classList.toggle('open');
+  if (open) arrow.classList.add('open'); else arrow.classList.remove('open');
+}
+
+function expandAll()  { data.forEach(p => { document.getElementById('items-'+p.id).classList.add('open'); document.getElementById('arr-'+p.id).classList.add('open'); }); }
+function collapseAll(){ data.forEach(p => { document.getElementById('items-'+p.id).classList.remove('open'); document.getElementById('arr-'+p.id).classList.remove('open'); }); }
+
+function showOnlyRemaining() {
+  expandAll();
+  data.forEach(phase => {
+    phase.items.forEach(item => {
+      const row = document.getElementById('row-' + item.id);
+      if (row) row.style.display = state[item.id] ? 'none' : 'flex';
+    });
+  });
+}
+
+function showAll() {
+  data.forEach(phase => {
+    phase.items.forEach(item => {
+      const row = document.getElementById('row-' + item.id);
+      if (row) row.style.display = 'flex';
+    });
+  });
+}
+
+function resetAll() {
+  if (!confirm('Réinitialiser toutes les cases ? Cette action est irréversible.')) return;
+  state = {};
+  save();
+  data.forEach(phase => {
+    phase.items.forEach(item => {
+      document.getElementById('cb-'+item.id).classList.remove('done');
+      document.getElementById('t-' +item.id).classList.remove('done-text');
+    });
+  });
+  updateStats();
+}
+
+function render() {
+  load();
+  const container = document.getElementById('phases');
+  data.forEach(phase => {
+    const div = document.createElement('div');
+    div.className = 'phase';
+    div.innerHTML = `
+      <div class="phase-hdr" style="background:${phase.hdrBg}" onclick="togglePhase('${phase.id}')">
+        <span class="phase-title" style="color:${phase.titleClr}">${phase.title}</span>
+        <span class="phase-cnt" id="cnt-${phase.id}" style="background:${phase.cntBg};color:${phase.cntClr}">0 / ${phase.items.length}</span>
+        <span class="phase-arrow" id="arr-${phase.id}">&#9654;</span>
+      </div>
+      <div class="phase-bar"><div class="phase-fill" id="pb-${phase.id}" style="width:0%"></div></div>
+      <div class="items open" id="items-${phase.id}"></div>
+    `;
+    container.appendChild(div);
+    const itemsDiv = div.querySelector('#items-' + phase.id);
+    document.getElementById('arr-' + phase.id).classList.add('open');
+
+    phase.items.forEach(item => {
+      const badge = item.badge === 'crit' ? '<span class="badge b-crit">critique</span>'
+                  : item.badge === 'sec'  ? '<span class="badge b-sec">important</span>'
+                  :                         '<span class="badge b-new">bonus</span>';
+      const done = state[item.id];
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.id = 'row-' + item.id;
+      row.innerHTML = `
+        <div class="cb ${done?'done':''}" id="cb-${item.id}" onclick="toggle('${item.id}')"></div>
+        <div class="item-body">
+          <div class="item-title ${done?'done-text':''}" id="t-${item.id}">${item.title}${badge}</div>
+          <div class="item-note">${item.note}</div>
+        </div>
+      `;
+      itemsDiv.appendChild(row);
+    });
+  });
+  updateStats();
+}
+
+render();
+</script>
+</body>
+</html>
