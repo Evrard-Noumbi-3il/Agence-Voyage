@@ -49,5 +49,8 @@
       "lcov",
       "text"
     ]
+  },
+  "overrides": {
+    "fast-xml-parser": "4.4.1"
   }
 }
