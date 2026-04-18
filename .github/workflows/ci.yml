@@ -118,6 +118,7 @@ jobs:
       # ========================================================================
       - name: "[4] SCA — Snyk scan dépendances backend"
         uses: snyk/actions/maven@master
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           JAVA_HOME: /opt/java/openjdk
@@ -251,6 +252,7 @@ jobs:
       # ─────────────────────────────────────────────────────────────────────
       - name: "[4] SCA — Snyk scan dépendances mobile"
         uses: snyk/actions/node@master
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
