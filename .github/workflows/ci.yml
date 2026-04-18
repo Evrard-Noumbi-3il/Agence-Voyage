@@ -26,6 +26,9 @@ jobs:
     name: Backend CI (Java 21 / Spring Boot 3)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write # Crucial pour le push ghcr.io
     
     services:
       postgres:
@@ -53,15 +56,11 @@ jobs:
           - 6379:6379  
 
     steps:
-      
-      # ==========================================================================
-      # SETUP
-      # ==========================================================================
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0   
- 
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -70,12 +69,12 @@ jobs:
           cache: 'maven'
 
       # ========================================================================
-      # ÉTAPE 1 — LINT : Checkstyle
+      # ÉTAPE 1 — LINT
       # =======================================================================
       - name: "[1] Lint — Checkstyle"
         working-directory: backend
         run: mvn checkstyle:check -q
- 
+
       # ========================================================================
       # ÉTAPE 2 — TESTS UNITAIRES + COVERAGE
       # =======================================================================
@@ -89,7 +88,7 @@ jobs:
           SPRING_REDIS_PORT: 6379
           SPRING_PROFILES_ACTIVE: test
         run: mvn test -Pcoverage --no-transfer-progress
- 
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
@@ -97,7 +96,7 @@ jobs:
           name: backend-coverage-report
           path: backend/target/site/jacoco/
           retention-days: 7
- 
+
       # ========================================================================
       # ÉTAPE 3 — SAST : SonarCloud
       # ========================================================================
@@ -110,6 +109,7 @@ jobs:
           mvn sonar:sonar \
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY_BACKEND }} \
             -Dsonar.organization=${{ secrets.SONAR_ORG }} \
+            -Dsonar.java.binaries=target/classes \
             -Dsonar.qualitygate.wait=true \
             --no-transfer-progress
 
@@ -127,7 +127,8 @@ jobs:
             --severity-threshold=high
             --file=backend/pom.xml
             --project-name=adv-backend
- 
+            --json-file-output=snyk-report.json
+
       - name: Upload Snyk backend report
         uses: actions/upload-artifact@v4
         if: always()
@@ -142,23 +143,21 @@ jobs:
       - name: "[5] Build — Maven package"
         working-directory: backend
         run: mvn package -DskipTests --no-transfer-progress
- 
+
       # ========================================================================
-      # ÉTAPE 6 — BUILD IMAGE DOCKER (multi-stage)
+      # ÉTAPE 6 — BUILD IMAGE DOCKER
       # ========================================================================
       - name: "[6] Docker — Build image multi-stage"
         uses: docker/build-push-action@v5
         with:
           context: backend
           file: backend/Dockerfile
-          push: false   
+          push: false 
+          load: true # Charge l'image localement pour que Trivy puisse la scanner
           tags: adv-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            BUILD_DATE=${{ github.run_id }}
-            GIT_SHA=${{ github.sha }}
- 
+
       # ========================================================================
       # ÉTAPE 7 — SCAN IMAGE DOCKER : Trivy
       # ========================================================================
@@ -167,11 +166,11 @@ jobs:
         with:
           image-ref: adv-backend:${{ github.sha }}
           format: 'table'
-          exit-code: '1'              
-          severity: 'CRITICAL'        
+          exit-code: '1'
+          severity: 'CRITICAL'
           vuln-type: 'os,library'
           output: trivy-backend-report.txt
- 
+
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4
         if: always()
@@ -181,7 +180,7 @@ jobs:
           retention-days: 30
 
       # ========================================================================
-      # PUSH IMAGE sur ghcr.io (uniquement si tout est vert ET sur develop)
+      # PUSH IMAGE sur ghcr.io
       # ========================================================================
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
@@ -190,14 +189,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
- 
+
       - name: Push image to ghcr.io
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
-          docker tag adv-backend:${{ github.sha }} \
-            ghcr.io/${{ github.repository_owner }}/adv-backend:${{ github.sha }}
-          docker tag adv-backend:${{ github.sha }} \
-            ghcr.io/${{ github.repository_owner }}/adv-backend:latest
+          docker tag adv-backend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/adv-backend:${{ github.sha }}
+          docker tag adv-backend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/adv-backend:latest
           docker push ghcr.io/${{ github.repository_owner }}/adv-backend:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/adv-backend:latest
 
