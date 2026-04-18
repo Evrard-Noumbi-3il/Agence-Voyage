@@ -1,0 +1,200 @@
+# =============================================================================
+# Déclenchement : MANUEL uniquement (workflow_dispatch)
+# Prérequis     : CI Pipeline doit être vert sur develop
+# Étapes        : Pull image → Deploy SSH → Health check → DAST ZAP
+# =============================================================================
+
+name: CD Staging — ADV
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Tag de l image Docker à déployer (ex: sha du commit ou latest)'
+        required: true
+        default: 'latest'
+        type: string
+      run_dast:
+        description: 'Lancer le scan DAST (OWASP ZAP) après déploiement ?'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+
+  # ===========================================================================
+  # JOB 1 — VÉRIFICATION : CI vert sur develop 
+  # ===========================================================================
+  check-ci-status:
+    name: Vérification CI vert sur develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier que le dernier CI sur develop est vert
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              branch: 'develop',
+              per_page: 1
+            });
+            const lastRun = runs.data.workflow_runs[0];
+            if (!lastRun || lastRun.conclusion !== 'success') {
+              core.setFailed(`Le dernier CI sur develop n'est pas vert. Statut : ${lastRun?.conclusion || 'inconnu'}. Corriger avant de déployer.`);
+            } else {
+              core.info(`CI vert — Run #${lastRun.run_number} : ${lastRun.conclusion}`);
+            }
+
+  # ===========================================================================
+  # JOB 2 — DÉPLOIEMENT SSH vers VPS Staging
+  # ===========================================================================
+  deploy-staging:
+    name: Déploiement SSH → VPS Staging
+    runs-on: ubuntu-latest
+    needs: check-ci-status
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: https://${{ secrets.STAGING_HOST }}
+
+    steps:
+
+      - name: Checkout code (pour docker-compose)
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+
+      - name: Ajouter le VPS aux known hosts
+        run: |
+          ssh-keyscan -p ${{ secrets.STAGING_PORT }} ${{ secrets.STAGING_HOST }} \
+            >> ~/.ssh/known_hosts
+
+      - name: Copier les fichiers de config sur le VPS
+        run: |
+          scp -P ${{ secrets.STAGING_PORT }} \
+            infra/docker-compose.yml \
+            infra/docker-compose.staging.yml \
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:${{ secrets.STAGING_DEPLOY_PATH }}/
+
+      - name: "[CD] Déploiement — pull + up"
+        run: |
+          ssh -p ${{ secrets.STAGING_PORT }} \
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.STAGING_DEPLOY_PATH }}
+
+            echo "=== Login ghcr.io ==="
+            echo ${{ secrets.GITHUB_TOKEN }} | \
+              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "=== Pull nouvelle image ==="
+            docker pull ghcr.io/${{ github.repository_owner }}/adv-backend:${{ inputs.image_tag }}
+
+            echo "=== Mise à jour docker-compose ==="
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.staging.yml \
+              --env-file .env \
+              pull backend
+
+            echo "=== Redémarrage du backend ==="
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.staging.yml \
+              --env-file .env \
+              up -d --no-deps backend
+
+            echo "=== Nettoyage images obsolètes ==="
+            docker image prune -f
+          ENDSSH
+
+      # ─────────────────────────────────────────────────────────────────────
+      # HEALTH CHECK post-déploiement
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Health check — /actuator/health (max 30s)
+        run: |
+          echo "Attente du démarrage du backend..."
+          MAX_RETRIES=6
+          RETRY=0
+          until curl -sf https://${{ secrets.STAGING_HOST }}/actuator/health | \
+                grep -q '"status":"UP"'; do
+            RETRY=$((RETRY+1))
+            if [ $RETRY -ge $MAX_RETRIES ]; then
+              echo "Health check échoué après ${MAX_RETRIES} tentatives"
+              exit 1
+            fi
+            echo "Tentative $RETRY/$MAX_RETRIES — attente 5s..."
+            sleep 5
+          done
+          echo "Backend UP et sain."
+
+      - name: Résumé du déploiement
+        run: |
+          echo "### Déploiement Staging réussi" >> $GITHUB_STEP_SUMMARY
+          echo "- Image : \`adv-backend:${{ inputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- URL : https://${{ secrets.STAGING_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Déployé par : ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Date : $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+
+  # ===========================================================================
+  # JOB 3 — DAST : OWASP ZAP Baseline Scan
+  # Obligatoire avant toute release — déclenché si run_dast = true
+  # ===========================================================================
+  dast-zap:
+    name: DAST — OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    timeout-minutes: 20
+    if: ${{ inputs.run_dast == true }}
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: "[DAST] OWASP ZAP — Baseline Scan"
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'https://${{ secrets.STAGING_HOST }}'
+          rules_file_name: '.github/zap-rules.tsv'
+          cmd_options: '-a'   # Inclure les requêtes AJAX
+          allow_issue_writing: false   # Ne pas créer d'issues GitHub auto
+
+      - name: Upload rapport ZAP HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-dast-report
+          path: |
+            report_html.html
+            report_json.json
+          retention-days: 30
+
+      - name: Vérification — Aucun finding HIGH/CRITICAL
+        if: always()
+        run: |
+          # Parser le rapport JSON pour vérifier les findings bloquants
+          HIGH_COUNT=$(cat report_json.json | \
+            python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          alerts = data.get('site', [{}])[0].get('alerts', [])
+          high = [a for a in alerts if int(a.get('riskcode', 0)) >= 2]
+          print(len(high))
+          ")
+          echo "Findings HIGH/CRITICAL : $HIGH_COUNT"
+          if [ "$HIGH_COUNT" -gt "0" ]; then
+            echo "BLOQUANT : $HIGH_COUNT finding(s) HIGH/CRITICAL détecté(s)."
+            echo "Consulter le rapport dans les artefacts GitHub Actions."
+            exit 1
+          fi
+          echo "Aucun finding bloquant. Release autorisée."

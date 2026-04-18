@@ -1,0 +1,13 @@
+{
+  "_comment": "Policy MinIO pour le bucket kyc-documents — accès privé strict",
+  "_note": "Ce fichier est pour référence. La policy est appliquée via init-minio.sh",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::kyc-documents/*"]
+    }
+  ]
+}
