@@ -17,6 +17,18 @@
     <property name="max" value="500"/>
   </module>
 
+  <!-- ── Longueur ───────────────────────────────────────── -->
+    <module name="LineLength">
+      <property name="max" value="120"/>
+      <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    </module>
+    <module name="MethodLength">
+      <property name="max" value="60"/>
+    </module>
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+    </module>
+
   <module name="TreeWalker">
 
     <!-- ── Imports ────────────────────────────────────────── -->
@@ -30,18 +42,6 @@
     <module name="LocalVariableName"/>
     <module name="ParameterName"/>
     <module name="ConstantName"/>   
-
-    <!-- ── Longueur ───────────────────────────────────────── -->
-    <module name="LineLength">
-      <property name="max" value="120"/>
-      <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
-    </module>
-    <module name="MethodLength">
-      <property name="max" value="60"/>
-    </module>
-    <module name="ParameterNumber">
-      <property name="max" value="7"/>
-    </module>
 
     <!-- ── Blocs ──────────────────────────────────────────── -->
     <module name="NeedBraces"/>     
