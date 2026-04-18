@@ -144,6 +144,10 @@ jobs:
         working-directory: backend
         run: mvn package -DskipTests --no-transfer-progress
 
+      # Initialise Buildx (nécessaire pour le cache GHA)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       # ========================================================================
       # ÉTAPE 6 — BUILD IMAGE DOCKER
       # ========================================================================
