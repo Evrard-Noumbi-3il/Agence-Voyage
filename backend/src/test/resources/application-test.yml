@@ -1,0 +1,7 @@
+spring:
+  cloud:
+    vault:
+      enabled: false # On désactive la recherche de secrets Vault
+  autoconfigure:
+    exclude: 
+      - org.springframework.cloud.vault.config.VaultAutoConfiguration
