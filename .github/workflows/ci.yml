@@ -300,6 +300,9 @@ jobs:
  
       - name: Install Newman + reporter
         run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Debug file structure
+        run: ls -R
  
       - name: "[8] Tests intégration — Newman"
         run: |
