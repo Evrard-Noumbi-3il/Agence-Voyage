@@ -197,6 +197,10 @@ jobs:
       - name: Push image to ghcr.io
         if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
         run: |
+          IMAGE_ID=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          
+          echo "Tagging and pushing to $IMAGE_ID"
+          
           docker tag adv-backend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/adv-backend:${{ github.sha }}
           docker tag adv-backend:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/adv-backend:latest
           docker push ghcr.io/${{ github.repository_owner }}/adv-backend:${{ github.sha }}
