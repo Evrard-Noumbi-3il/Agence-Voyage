@@ -253,8 +253,8 @@ services:
       - '--storage.tsdb.retention.time=15d'   
       - '--web.enable-lifecycle'
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
       - prometheus_data:/prometheus
     networks:
       - monitoring-net
