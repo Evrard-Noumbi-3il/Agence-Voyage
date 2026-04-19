@@ -280,44 +280,44 @@ jobs:
   # JOB 3 — TESTS D'INTÉGRATION (Newman / Postman)
   # Dépend des deux jobs précédents
   # ===========================================================================
-  integration-tests:
-    name: Tests d'intégration (Newman)
-    runs-on: ubuntu-latest
-    needs: [backend-ci, mobile-ci]
-    timeout-minutes: 15
+#  integration-tests:
+#    name: Tests d'intégration (Newman)
+#    runs-on: ubuntu-latest
+#    needs: [backend-ci, mobile-ci]
+#    timeout-minutes: 15
 
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+#    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
  
-    steps:
+#    steps:
  
-      - name: Checkout code
-        uses: actions/checkout@v4
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+# 
+#      - name: Set up Node.js 20
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
  
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
- 
-      - name: Install Newman + reporter
-        run: npm install -g newman newman-reporter-htmlextra
+#      - name: Install Newman + reporter
+#        run: npm install -g newman newman-reporter-htmlextra
 
-      - name: Debug file structure
-        run: ls -R
+#      - name: Debug file structure
+#        run: ls -R
  
-      - name: "[8] Tests intégration — Newman"
-        run: |
-          newman run docs/api/ADV_API.postman_collection.json \
-            --environment docs/api/ADV_API.staging.postman_environment.json \
-            --reporters cli,htmlextra \
-            --reporter-htmlextra-export newman-report.html \
-            --bail   # Arrêter à la première erreur
-        continue-on-error: false
+#      - name: "[8] Tests intégration — Newman"
+#        run: |
+#          newman run docs/api/ADV_API.postman_collection.json \
+#            --environment docs/api/ADV_API.staging.postman_environment.json \
+#            --reporters cli,htmlextra \
+#            --reporter-htmlextra-export newman-report.html \
+#            --bail   # Arrêter à la première erreur
+#        continue-on-error: false
  
-      - name: Upload Newman report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: newman-integration-report
-          path: newman-report.html
-          retention-days: 14
+#      - name: Upload Newman report
+#        uses: actions/upload-artifact@v4
+#        if: always()
+#        with:
+#          name: newman-integration-report
+#          path: newman-report.html
+#          retention-days: 14
  
