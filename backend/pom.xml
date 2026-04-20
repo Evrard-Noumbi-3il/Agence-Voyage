@@ -25,13 +25,17 @@
         <sonar.exclusions>**/dto/**, **/entity/**, **/config/**, **/AdvApplication.java</sonar.exclusions>
         <sonar.coverage.exclusions>**/AdvApplication.java</sonar.coverage.exclusions>
         <tomcat.version>10.1.54</tomcat.version>
-        <spring-security.version>6.4.6</spring-security.version> 
+
         <netty.version>4.1.118.Final</netty.version>             
         <spring-framework.version>6.2.17</spring-framework.version> 
         <bouncycastle.version>1.84</bouncycastle.version>
         <jackson.version>2.21.2</jackson.version>
         <spring-boot.version>3.4.3</spring-boot.version>
         <httpclient5.version>5.4.3</httpclient5.version>
+
+        <logback.version>1.5.19</logback.version> 
+        <nimbus-jose-jwt.version>9.48</nimbus-jose-jwt.version> 
+        <spring-security.version>6.5.9</spring-security.version>
     </properties>
 
     <dependencies>
@@ -120,6 +124,43 @@
                 <artifactId>bcprov-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
             </dependency>
+            
+            <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator</artifactId>
+            <version>3.5.12</version> 
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator-autoconfigure</artifactId>
+            <version>3.5.12</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <version>6.5.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5-h2</artifactId>
+            <version>5.3.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <version>${spring-security.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <version>${spring-security.version}</version>
+        </dependency>
+
         </dependencies>
     </dependencyManagement>
 
