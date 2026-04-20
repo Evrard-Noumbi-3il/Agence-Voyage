@@ -1,0 +1,63 @@
+groups:
+
+  # ============================================================================
+  # DISPONIBILITÉ — Alertes critiques si un service est down
+  # ============================================================================
+  - name: availability
+    rules:
+
+      - alert: BackendDown
+        expr: up{job="adv-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API ADV indisponible"
+          description: "Le backend Spring Boot ne répond plus depuis 1 minute."
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus indisponible"
+
+  # ============================================================================
+  # PERFORMANCE — Alertes si le backend est lent
+  # ============================================================================
+  - name: performance
+    rules:
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="adv-backend"}[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temps de réponse API élevé (p95 > 500ms)"
+          description: "Le p95 des temps de réponse dépasse 500ms depuis 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{job="adv-backend",status=~"5.."}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taux d'erreurs 5xx élevé"
+          description: "Plus de 10% des requêtes retournent des erreurs 5xx."
+
+  # ============================================================================
+  # RESSOURCES — Alertes mémoire JVM
+  # ============================================================================
+  - name: resources
+    rules:
+
+      - alert: JvmMemoryHigh
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mémoire JVM heap > 85%"
+          description: "La mémoire heap JVM dépasse 85% depuis 3 minutes. Risque d'OOM."

@@ -1,0 +1,41 @@
+global:
+  resolve_timeout: 5m
+
+# Routage des alertes
+route:
+  group_by: ['alertname', 'severity']
+  group_wait:      30s    # Attend 30s pour grouper les alertes similaires
+  group_interval:  5m     # Attend 5m avant de réémettre pour un groupe
+  repeat_interval: 12h    # Répète l'alerte toutes les 12h si toujours active
+  receiver: 'default'
+
+  routes:
+    # Alertes critiques → notification immédiate
+    - match:
+        severity: critical
+      receiver: 'critical'
+      group_wait: 10s
+      repeat_interval: 1h
+
+# Récepteurs d'alertes
+receivers:
+
+  - name: 'default'
+    # En dev : alertes loggées uniquement (pas d'email configuré)
+    # En prod : configurer email ou webhook Slack/WhatsApp Business
+    webhook_configs:
+      - url: 'http://localhost:9999/alerts'   # Placeholder pour dev
+        send_resolved: true
+
+  - name: 'critical'
+    webhook_configs:
+      - url: 'http://localhost:9999/alerts/critical'   # Placeholder pour dev
+        send_resolved: true
+
+# Inhibition : ne pas envoyer d'alerte "lente" si le service est déjà "down"
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

@@ -1,0 +1,27 @@
+# .github/zap-rules.tsv
+# Règles OWASP ZAP personnalisées pour ADV
+# Format : ID_REGLE	ACTION	PARAMETRE
+# Actions : IGNORE, WARN, FAIL
+#
+# FAIL  → bloque le pipeline (défaut pour HIGH/CRITICAL)
+# WARN  → affiche un avertissement sans bloquer
+# IGNORE → supprime l'alerte (à justifier dans docs/securite/)
+#
+# Liste des IDs : https://www.zaproxy.org/docs/alerts/
+
+# ── Règles ignorées (faux positifs connus en dev) ──────────────
+# Anti-CSRF token : Keycloak gère ça via OIDC/state parameter
+10202	IGNORE
+# Cookie SameSite : géré par Keycloak et Spring Security
+10054	IGNORE
+# Information disclosure via Server header : masqué dans Nginx
+10036	IGNORE
+
+# ── Règles en WARNING (pas bloquant pour dev) ──────────────────
+# X-Content-Type-Options header missing
+10021	WARN
+# Content Security Policy header not set (configuré dans Nginx)
+10038	WARN
+
+# ── Toutes les autres règles HIGH/CRITICAL → FAIL (défaut ZAP) ─
+# Pas besoin de les lister explicitement

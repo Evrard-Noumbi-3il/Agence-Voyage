@@ -1,0 +1,340 @@
+# RÉSEAUX :
+#   backend-net    → Services internes (DB, Redis, Vault, MinIO, Backend, Keycloak)
+#   frontend-net   → Services exposés via Nginx (Backend, Keycloak, Grafana)
+#   monitoring-net → Prometheus + Grafana + Alertmanager (isolation dédiée)
+#
+# RÈGLE DE SÉCURITÉ :
+#   Seul Nginx expose les ports 80 et 443 vers l'extérieur.
+#   Tous les autres services communiquent uniquement par nom de service Docker.
+#   PostgreSQL, Redis, Vault, MinIO : AUCUN port exposé à l'hôte.
+# =============================================================================
+
+services:
+
+  # ===========================================================================
+  # POSTGRESQL 16 - Base de données principale
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: bd-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB:       ${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro  # scripts SQL d'init 
+    networks:
+      - backend-net
+    ports:
+      - "5432:5432"   # Exposé en dev uniquement (pour tests manuels)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    mem_limit: 512m
+    cpus: 0.5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # REDIS - Verrous distribués des sièges (AOF activé)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: adv-redis
+    restart: unless-stopped
+    command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - .env
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    mem_limit: 256m
+    cpus: 0.25
+
+  # ===========================================================================
+  # KEYCLOAK - IAM (OAuth2 / OIDC / MFA)
+  # ===========================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: adv-keycloak
+    restart: unless-stopped
+    command: start-dev 
+    env_file:
+      - .env  
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_DB:          postgres
+      KC_DB_URL:      jdbc:postgresql://postgres:5432/${DB_NAME}
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_DB_SCHEMA:   keycloak
+      KC_HOSTNAME:    localhost
+      KC_HOSTNAME_STRICT:       false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED:          true
+      KC_PROXY:                 edge   
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./keycloak/config:/opt/keycloak/data/import:ro 
+    networks:
+      - backend-net   
+      - frontend-net  
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s   
+
+  # ===========================================================================
+  # HASHICORP VAULT - Gestion des secrets
+  # Mode dev : root token exposé.
+  # En prod : mode server avec unseal manuel ou auto-unseal KMS.
+  # ===========================================================================
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: adv-vault
+    restart: unless-stopped
+    # command: server -config=/vault/config/vault.hcl  
+    command: server -dev -dev-listen-address="0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK   
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID:  ${VAULT_ROOT_TOKEN}
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_ADDR:               "http://0.0.0.0:8200"
+    volumes:
+      - vault_data:/vault/data
+      #- ./vault/config:/vault/config:ro
+    networks:
+      - backend-net
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    mem_limit: 256m
+    cpus: 0.25
+
+  # ===========================================================================
+  # MINIO - Stockage sécurisé des documents KYC
+  # Accès privé uniquement - URLs pré-signées générées par l'API Spring Boot
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: adv-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    networks:
+      - backend-net
+    # Console MinIO exposée en dev uniquement pour créer le bucket kyc-documents
+    ports:
+      - "9001:9001"   
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 0.75
+
+  # ===========================================================================
+  # BACKEND - Spring Boot (API REST)
+  # ===========================================================================
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: adv-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      VAULT_URI:   http://vault:8200
+      VAULT_ROLE_ID: ${VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${VAULT_SECRET_ID}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - frontend-net   
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s   
+    mem_limit: 768m
+    cpus: 0.75
+
+  # ===========================================================================
+  # NGINX - Reverse Proxy + TLS + Rate Limiting
+  # SEUL point d'entrée exposé vers l'extérieur (ports 80 et 443)
+  # ===========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: adv-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro   
+    ports:
+      - "80:80"    
+      - "443:443"  
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 128m
+    cpus: 0.25
+
+  # ===========================================================================
+  # PROMETHEUS - Collecte des métriques
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: adv-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'   
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring-net
+      - backend-net    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    mem_limit: 512m
+    cpus: 0.5
+
+  # ===========================================================================
+  # GRAFANA - Dashboards de monitoring
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: adv-grafana
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      GF_SECURITY_ADMIN_USER:     ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring-net
+      - frontend-net   
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 256m
+    cpus: 0.25
+
+  # ===========================================================================
+  # ALERTMANAGER - Gestion des alertes Prometheus
+  # ===========================================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: adv-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - monitoring-net
+    mem_limit: 128m
+    cpus: 0.1
+
+# =============================================================================
+# VOLUMES - Persistance des données
+# =============================================================================
+volumes:
+  postgres_data:    
+  redis_data:       
+  minio_data:       
+  vault_data:       
+  prometheus_data:  
+  grafana_data:     
+
+# =============================================================================
+# RÉSEAUX - Isolation et segmentation
+# =============================================================================
+networks:
+  backend-net:
+    driver: bridge
+
+  frontend-net:
+    driver: bridge
+
+  monitoring-net:
+    driver: bridge

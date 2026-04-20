@@ -1,0 +1,324 @@
+name: CI Pipeline — ADV
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - main
+
+# Permissions minimales (principe du moindre privilège)
+permissions:
+  contents: read
+  packages: write       
+  pull-requests: write   
+ 
+# Annuler les runs précédents si un nouveau push arrive sur la même branche
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+ 
+
+jobs:
+
+  backend-ci:
+    name: Backend CI (Java 21 / Spring Boot 3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write # Crucial pour le push ghcr.io
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: adv_test
+          POSTGRES_USER: adv_test
+          POSTGRES_PASSWORD: adv_test_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+        
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379  
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # ========================================================================
+      # ÉTAPE 1 — LINT
+      # =======================================================================
+      - name: "[1] Lint — Checkstyle"
+        working-directory: backend
+        run: mvn checkstyle:check -q
+
+      # ========================================================================
+      # ÉTAPE 2 — TESTS UNITAIRES + COVERAGE
+      # =======================================================================
+      - name: "[2] Tests unitaires + coverage (JaCoCo)"
+        working-directory: backend
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/adv_test
+          SPRING_DATASOURCE_USERNAME: adv_test
+          SPRING_DATASOURCE_PASSWORD: adv_test_pass
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+          SPRING_PROFILES_ACTIVE: test
+        run: mvn test -Pcoverage --no-transfer-progress
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/target/site/jacoco/
+          retention-days: 7
+
+      # ========================================================================
+      # ÉTAPE 3 — SAST : SonarCloud
+      # ========================================================================
+      - name: "[3] SAST — SonarCloud scan"
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY_BACKEND }} \
+            -Dsonar.organization=${{ secrets.SONAR_ORG }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.java.binaries=target/classes \
+            -Dsonar.qualitygate.wait=true \
+            --no-transfer-progress
+
+      # ========================================================================
+      # ÉTAPE 4 — SCA : Snyk (dépendances)
+      # ========================================================================
+      - name: "[4] SCA — Snyk scan dépendances backend"
+        uses: snyk/actions/maven@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          JAVA_HOME: /opt/java/openjdk
+        with:
+          args: >
+            --severity-threshold=high
+            --file=backend/pom.xml
+            --project-name=adv-backend
+            --json-file-output=snyk-report.json
+
+      - name: Upload Snyk backend report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-backend-report
+          path: snyk-report.json
+          retention-days: 30
+
+      # ========================================================================
+      # ÉTAPE 5 — BUILD Maven (JAR)
+      # ========================================================================
+      - name: "[5] Build — Maven package"
+        working-directory: backend
+        run: mvn package -DskipTests --no-transfer-progress
+
+      # Initialise Buildx (nécessaire pour le cache GHA)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ========================================================================
+      # ÉTAPE 6 — BUILD IMAGE DOCKER
+      # ========================================================================
+      - name: "[6] Docker — Build image multi-stage"
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false 
+          load: true # Charge l'image localement pour que Trivy puisse la scanner
+          tags: |
+            adv-backend:latest
+            adv-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ========================================================================
+      # ÉTAPE 7 — SCAN IMAGE DOCKER : Trivy
+      # ========================================================================
+      - name: "[7] Trivy — Scan image Docker"
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: adv-backend:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL'
+          vuln-type: 'os,library'
+          output: trivy-backend-report.txt
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-backend-report
+          path: trivy-backend-report.txt
+          retention-days: 30
+
+      # ========================================================================
+      # PUSH IMAGE sur ghcr.io
+      # ========================================================================
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to ghcr.io
+        if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+        run: |
+          IMAGE_ID=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          
+          echo "Target Image ID: $IMAGE_ID"
+
+          docker tag adv-backend:${{ github.sha }} $IMAGE_ID:${{ github.sha }}
+          docker tag adv-backend:${{ github.sha }} $IMAGE_ID:latest
+          docker push $IMAGE_ID:${{ github.sha }}
+          docker push $IMAGE_ID:latest
+
+  # ===========================================================================
+  # JOB 2 — MOBILE : Lint + Tests + SCA + Build
+  # ===========================================================================
+  mobile-ci:
+    name: Mobile CI (React Native CLI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+ 
+    steps:
+ 
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+ 
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+ 
+      # ─────────────────────────────────────────────────────────────────────
+      # ÉTAPE 1 — LINT : ESLint
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[1] Lint — ESLint"
+        working-directory: mobile
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0
+ 
+      # ─────────────────────────────────────────────────────────────────────
+      # ÉTAPE 2 — TESTS : Jest
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[2] Tests — Jest + coverage"
+        working-directory: mobile
+        run: npx jest --coverage --coverageReporters=lcov --passWithNoTests
+ 
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-coverage-report
+          path: mobile/coverage/
+          retention-days: 7
+ 
+      # ─────────────────────────────────────────────────────────────────────
+      # ÉTAPE 4 — SCA : Snyk mobile
+      # ─────────────────────────────────────────────────────────────────────
+      - name: "[4] SCA — Snyk scan dépendances mobile"
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: >
+            --severity-threshold=high
+            --file=mobile/package.json
+            --project-name=adv-mobile
+ 
+      - name: Upload Snyk mobile report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-mobile-report
+          path: snyk-report.json
+          retention-days: 30
+ 
+  # ===========================================================================
+  # JOB 3 — TESTS D'INTÉGRATION (Newman / Postman)
+  # Dépend des deux jobs précédents
+  # ===========================================================================
+#  integration-tests:
+#    name: Tests d'intégration (Newman)
+#    runs-on: ubuntu-latest
+#    needs: [backend-ci, mobile-ci]
+#    timeout-minutes: 15
+
+#    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+ 
+#    steps:
+ 
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+# 
+#      - name: Set up Node.js 20
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: '20'
+ 
+#      - name: Install Newman + reporter
+#        run: npm install -g newman newman-reporter-htmlextra
+
+#      - name: Debug file structure
+#        run: ls -R
+ 
+#      - name: "[8] Tests intégration — Newman"
+#        run: |
+#          newman run docs/api/ADV_API.postman_collection.json \
+#            --environment docs/api/ADV_API.staging.postman_environment.json \
+#            --reporters cli,htmlextra \
+#            --reporter-htmlextra-export newman-report.html \
+#            --bail   # Arrêter à la première erreur
+#        continue-on-error: false
+ 
+#      - name: Upload Newman report
+#        uses: actions/upload-artifact@v4
+#        if: always()
+#        with:
+#          name: newman-integration-report
+#          path: newman-report.html
+#          retention-days: 14
+ 

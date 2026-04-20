@@ -1,31 +1,82 @@
-# GEV Platform — General Express Voyages
+# ADV Platform — Agence de Voyages
+ADV Platform est une solution logicielle industrielle de réservation de billets de bus en temps réel, conçue pour moderniser l'expérience de voyage.
 
-Plateforme de réservation de billets de bus en temps réel.
-Projet de fin d'études — Full-Stack & DevSecOps — Evrard NOUMBI — 2026
 
-## Prérequis
-- Docker Desktop 24+
-- Java 21 (JDK)
-- Node.js 20 LTS
-- React Native CLI
+# Points Forts du Projet
+  - Temps Réel : Verrouillage distribué des sièges via Redis pour éviter le surbooking.
 
-## Lancement rapide (environnement dev)
+  - Security by Design : Authentification OAuth2/OIDC avec Keycloak, gestion des secrets via HashiCorp Vault.
+
+  - Pipeline DevSecOps : Analyse automatisée du code (Sonar), des dépendances (Snyk) et des conteneurs (Trivy).
+
+  - Infrastructure as Code : Pile complète virtualisée sous Docker incluant monitoring et stockage objet (MinIO).
+
+# Stack Technique
+### Backend (API REST)
+ - Core : Java 21 LTS / Spring Boot 3.4.2
+
+ - Data : PostgreSQL 16 (Persistance), Redis 7 (Cache/Locks), Flyway (Migrations)
+
+ - Tests : JUnit 5, Mockito, Newman (Postman)
+
+### Mobile (Frontend)
+ - Framework : React Native CLI 0.74+
+
+ - Auth : AppAuth-JS (OIDC / JWT)
+
+### Infrastructure & SecOps
+  - Orchestration : Docker Compose (9 services)
+
+  - Observabilité : Prometheus & Grafana
+
+  - CI/CD : GitHub Actions (Build, Test, Scan, Push to GHCR.io)
+
+# Organisation du Dépôt
 ```bash
-cd infra
-cp .env.example .env       # remplir les valeurs
-docker compose up -d       # démarre les 9 services
+├── .github/          # Workflows CI/CD (Automation)
+├── backend/          # Micro-service Spring Boot (Logiciel)
+├── mobile/           # Application Mobile (Interface)
+├── infra/            # Infrastructure (Docker Compose, Monitoring, Vault)
+├── docs/             # Documentation complète
+│   ├── api/          # Collections Postman & Environnements
+│   ├── architecture/ # Diagrammes C4 & Schémas réseau
+│   ├── conception/   # CDC, User Stories & Schéma DB
+│   └── securite/     # Rapports Snyk/Trivy & Registre de risques
+└── README.md         # Ce document
+```
+# Installation & Lancement Rapide
+### 1. Cloner et configurer l'infrastructure
+```bash
+git clone https://github.com/Evrard-Noumbi-3il/Agence-Voyage.git
+cd Agence-Voyage/infra
+cp .env.example .env
+docker compose up -d
+```
+### 2. Démarrer le Backend
+```bash
 cd ../backend
-mvn spring-boot:run        # démarre l'API (migrations Flyway auto)
+./mvnw spring-boot:run
+```
+### 3. Démarrer le Mobile
+```bash
 cd ../mobile
-npm install && npx react-native start
+npm install && npx react-native run-android
 ```
 
-## Structure
-- `infra/`    — Docker Compose, configs Nginx/Keycloak/Vault/Redis/MinIO/Monitoring
-- `backend/`  — API Spring Boot 3 (Java 21)
-- `mobile/`   — Application React Native CLI
-- `docs/`     — CDC, User Stories, schéma DB, rapports sécurité
-- `.github/`  — Pipelines CI/CD GitHub Actions
+# Gouvernance Sécurité
+Le projet suit une démarche de Shift-Left Security. Chaque modification de code subit les tests suivants :
 
-## Documentation
-Voir `docs/conception/` pour le CDC complet et les User Stories.
+1. Linter : Respect du Google Java Style (Checkstyle).
+
+2. SCA (Snyk) : Vérification des CVE dans les librairies tierces.
+
+3. SAST (SonarCloud) : Analyse de la qualité et des failles logiques.
+
+4. Container Scan (Trivy) : Analyse de l'image Docker finale.
+
+# Documentation de Référence
+docs/conception/README.md
+
+docs/architecture/README.md
+
+docs/securite/README.md

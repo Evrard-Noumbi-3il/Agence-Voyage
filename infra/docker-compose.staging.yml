@@ -1,0 +1,31 @@
+services:
+
+  vault:
+    command: server -config=/vault/config/vault-staging.hcl
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+    ports: []   
+  keycloak:
+    ports: []
+
+  minio:
+    ports: []
+
+  grafana:
+    ports: []
+
+  backend:
+    mem_limit: 512m
+    cpus: 0.5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  nginx:
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro   
+      - /var/www/certbot:/var/www/certbot:ro   
