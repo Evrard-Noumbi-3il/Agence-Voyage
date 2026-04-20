@@ -36,6 +36,7 @@
         <logback.version>1.5.19</logback.version> 
         <nimbus-jose-jwt.version>9.48</nimbus-jose-jwt.version> 
         <spring-security.version>6.5.9</spring-security.version>
+        <logback.version>1.5.25</logback.version>
     </properties>
 
     <dependencies>
@@ -159,6 +160,17 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
             <version>${spring-security.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
 
         </dependencies>
