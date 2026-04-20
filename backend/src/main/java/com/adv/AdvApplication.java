@@ -11,7 +11,7 @@ public class AdvApplication {
     }
 
     /**
-     * Point d'entrée principal de l'application.
+     * Point d'entrée principal de l'application Spring Boot.
      * @param args arguments de ligne de commande.
      */
     public static void main(final String[] args) {
