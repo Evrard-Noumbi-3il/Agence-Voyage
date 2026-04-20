@@ -67,5 +67,11 @@ mvn sonar:sonar -Dsonar.token=${SONAR_TOKEN}
 
 trivy image adv-backend:latest
 ```
+- Isolation Réseau : "Les endpoints Actuator ne sont pas exposés sur Internet, ils sont accessibles uniquement via le réseau interne du cluster (Docker/Kubernetes)."
+
+- Sécurité Applicative : "L'accès à /actuator/** est protégé par Spring Security et nécessite un rôle ADMIN valide via Keycloak."
+
+- Filtrage : "Seuls les endpoints nécessaires (health, info) sont activés, les endpoints sensibles (env, heapdump, shutdown) sont désactivés dans le application.properties."
+
 L'intégration de Trivy et Snyk directement dans le workflow permet de garantir que l'image stockée sur GitHub Container Registry (GHCR) est saine au moment de sa création. C'est un gage de confiance pour le déploiement continu (CD).
 
