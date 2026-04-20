@@ -5,7 +5,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class AdvApplication {
-    public static void main(String[] args) {
+
+    protected AdvApplication() {
+        // Constructeur vide pour Checkstyle
+    }
+
+    /**
+     * Point d'entrée principal de l'application.
+     * @param args arguments de ligne de commande.
+     */
+    public static void main(final String[] args) {
         SpringApplication.run(AdvApplication.class, args);
     }
 }
