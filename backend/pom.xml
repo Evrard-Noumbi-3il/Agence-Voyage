@@ -21,6 +21,9 @@
         <spring-security.version>6.4.10</spring-security.version>
         <jackson.version>2.18.2</jackson.version>
         <bouncycastle.version>1.84</bouncycastle.version>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.exclusions>**/dto/**, **/entity/**, **/config/**, **/AdvApplication.java</sonar.exclusions>
+        <sonar.coverage.exclusions>**/AdvApplication.java</sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
