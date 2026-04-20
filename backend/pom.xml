@@ -24,11 +24,13 @@
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.exclusions>**/dto/**, **/entity/**, **/config/**, **/AdvApplication.java/**</sonar.exclusions>
         <sonar.coverage.exclusions>**/AdvApplication.java</sonar.coverage.exclusions>
-        <tomcat.version>10.1.50</tomcat.version>
+        <tomcat.version>10.1.53</tomcat.version>
         <spring-security.version>6.4.6</spring-security.version> 
         <netty.version>4.1.118.Final</netty.version>             
-        <spring-framework.version>6.2.11</spring-framework.version> 
+        <spring-framework.version>6.2.17</spring-framework.version> 
         <bouncycastle.version>1.84</bouncycastle.version>
+        <jackson.version>2.18.6</jackson.version>
+        <spring-boot.version>3.4.3</spring-boot.version>
     </properties>
 
     <dependencies>
