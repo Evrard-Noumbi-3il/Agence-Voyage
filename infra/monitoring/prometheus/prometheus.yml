@@ -33,4 +33,7 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['backend:8080']
+        labels:
+          service: 'adv-backend'
+          environment: 'dev'
     scrape_interval: 10s

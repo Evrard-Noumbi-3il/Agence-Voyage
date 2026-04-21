@@ -12,7 +12,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "API ADV indisponible"
+          summary: "API ADV indisponible Depuis 1minute"
           description: "Le backend Spring Boot ne répond plus depuis 1 minute."
 
       - alert: PrometheusDown
@@ -23,6 +23,18 @@ groups:
         annotations:
           summary: "Prometheus indisponible"
 
+      - alert: BackendHealthUnhealthy
+        expr: |
+          http_server_requests_seconds_count{
+            job="adv-backend",
+            uri="/actuator/health"
+          } == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health check API sans trafic"
+
   # ============================================================================
   # PERFORMANCE — Alertes si le backend est lent
   # ============================================================================
@@ -31,7 +43,7 @@ groups:
 
       - alert: HighResponseTime
         expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job="adv-backend"}[5m])) > 0.5
-        for: 2m
+        for: 3m
         labels:
           severity: warning
         annotations:
@@ -39,8 +51,11 @@ groups:
           description: "Le p95 des temps de réponse dépasse 500ms depuis 2 minutes."
 
       - alert: HighErrorRate
-        expr: rate(http_server_requests_seconds_count{job="adv-backend",status=~"5.."}[5m]) > 0.1
-        for: 1m
+        expr: rate(http_server_requests_seconds_count{job="adv-backend",status=~"5.."}[5m]) > 0.1 /
+          rate(http_server_requests_seconds_count{
+            job="gev-backend"
+          }[5m]) > 0.05
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -54,10 +69,37 @@ groups:
     rules:
 
       - alert: JvmMemoryHigh
-        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        expr: |
+          jvm_memory_used_bytes{area="heap", job="adv-backend"} /
+          jvm_memory_max_bytes{area="heap", job="adv-backend"} > 0.85 / jvm_memory_max_bytes{area="heap"} > 0.85
         for: 3m
         labels:
           severity: warning
         annotations:
           summary: "Mémoire JVM heap > 85%"
           description: "La mémoire heap JVM dépasse 85% depuis 3 minutes. Risque d'OOM."
+
+      - alert: JvmGcTimeHigh
+        expr: |
+          rate(jvm_gc_pause_seconds_sum{job="adv-backend"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temps GC Java élevé (> 10% du temps)"
+ 
+  # ---------------------------------------------------------------------------
+  # BASE DE DONNÉES
+  # ---------------------------------------------------------------------------
+  - name: database
+    rules:
+ 
+      - alert: DbConnectionPoolExhausted
+        expr: |
+          hikaricp_connections_active{job="adv-backend"} /
+          hikaricp_connections_max{job="adv-backend"} > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pool de connexions DB épuisé à 90%"
