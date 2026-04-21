@@ -81,14 +81,13 @@ services:
     env_file:
       - .env  
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
       KC_DB:          postgres
       KC_DB_URL:      jdbc:postgresql://postgres:5432/${DB_NAME}
       KC_DB_USERNAME: ${DB_USER}
       KC_DB_PASSWORD: ${DB_PASSWORD}
       KC_DB_SCHEMA:   keycloak
-      KC_HOSTNAME:    localhost
       KC_HOSTNAME_STRICT:       false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED:          true
@@ -97,7 +96,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./keycloak/config:/opt/keycloak/data/import:ro 
+    # - ./keycloak/config:/opt/keycloak/data/import:ro 
+      - ./keycloak/config/adv-dev-realm.json:/opt/keycloak/data/import/realm.json
     networks:
       - backend-net   
       - frontend-net  

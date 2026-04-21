@@ -7,19 +7,16 @@
 #   2. Attendre que MinIO soit healthy
 #   3. bash infra/minio/init-minio.sh
 #
-# Prérequis : mc (MinIO Client) installé
-#   Windows : winget install MinIO.MinioClient
-#   ou télécharger mc.exe depuis https://dl.min.io/client/mc/release/windows-amd64/mc.exe
 # =============================================================================
 
 set -e
 
 # Charger les variables depuis .env
-if [ -f "../infra/.env" ]; then
-  MINIO_USER=$(grep MINIO_ROOT_USER ../infra/.env | cut -d= -f2 | tr -d '\r')
-  MINIO_PASS=$(grep MINIO_ROOT_PASSWORD ../infra/.env | cut -d= -f2 | tr -d '\r')
+if [ -f "./infra/.env" ]; then
+  MINIO_USER=$(grep MINIO_ROOT_USER ./infra/.env | cut -d= -f2 | tr -d '\r')
+  MINIO_PASS=$(grep MINIO_ROOT_PASSWORD ./infra/.env | cut -d= -f2 | tr -d '\r')
 else
-  echo "Fichier ../infra/.env introuvable."
+  echo "Fichier ./infra/.env introuvable."
   exit 1
 fi
 

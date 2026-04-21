@@ -20,10 +20,10 @@ v-exec() {
 }
 
 # Charger le token depuis .env
-if [ -f "../infra/.env" ]; then
-  export VAULT_TOKEN_VAL=$(grep VAULT_ROOT_TOKEN ../infra/.env | cut -d= -f2 | tr -d '\r')
+if [ -f "./infra/.env" ]; then
+  export VAULT_TOKEN_VAL=$(grep VAULT_ROOT_TOKEN ./infra/.env | cut -d= -f2 | tr -d '\r')
 else
-  echo "Fichier ../infra/.env introuvable. Exporter VAULT_TOKEN manuellement."
+  echo "Fichier ./infra/.env introuvable. Exporter VAULT_TOKEN manuellement."
   exit 1
 fi
 
