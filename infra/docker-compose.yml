@@ -54,6 +54,8 @@ services:
     container_name: adv-redis
     restart: unless-stopped
     command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"   
     env_file:
       - .env
     volumes:
@@ -77,7 +79,7 @@ services:
     image: quay.io/keycloak/keycloak:24.0
     container_name: adv-keycloak
     restart: unless-stopped
-    command: start-dev 
+    command: start-dev --import-realm
     env_file:
       - .env  
     environment:
@@ -98,7 +100,7 @@ services:
         condition: service_healthy
     volumes:
     # - ./keycloak/config:/opt/keycloak/data/import:ro 
-      - ./keycloak/config/adv-dev-realm.json:/opt/keycloak/data/import/realm.json
+      - ./keycloak/config/adv-dev-realm.json:/opt/keycloak/data/import/realm.json:ro
     networks:
       - backend-net   
       - frontend-net  

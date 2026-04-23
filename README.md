@@ -51,6 +51,9 @@ git clone https://github.com/Evrard-Noumbi-3il/Agence-Voyage.git
 cd Agence-Voyage/infra
 cp .env.example .env
 docker compose up -d
+# Depuis la racine du projet
+./infra/minio/init-minio.sh
+./infra/vault/config/init-vault.sh
 ```
 ### 2. Démarrer le Backend
 ```bash

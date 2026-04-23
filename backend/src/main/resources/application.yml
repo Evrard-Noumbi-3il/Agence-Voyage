@@ -1,0 +1,282 @@
+spring:
+  application:
+    name: agence-voyage-backend
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev} 
+
+  # ========================================================
+  # Configuration Vault (Pour récupérer les secrets)
+  # ========================================================
+  cloud:
+    vault:
+      uri: ${VAULT_URI:http://localhost:8200}  # URI de Vault, peut être défini dans .env
+      authentication: APPROLE
+      app-role:
+        role-id: ${VAULT_ROLE_ID}      
+        secret-id: ${VAULT_SECRET_ID}  
+        app-role-path: approle
+      kv:
+        enabled: true
+        backend: secret
+        default-context: adv 
+        application-name: adv-backend
+      fail-fast: true  # Échoue rapidement si Vault n'est pas accessible
+      config:
+        lifecycle:
+          enabled: true
+          min-delay: 10s
+          expiry-threshold: 60s
+
+  # =============================================================================
+  # Configuration de la base de données (Les valeurs réelles viendront de Vault)
+  # =============================================================================
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${database.name}
+    username: ${database.user}
+    password: ${database.password}  
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+      pool-name: AdvHikariPool
+
+
+  # ============================================================================
+  # JPA / Hibernate
+  # ============================================================================
+  jpa:
+    hibernate:
+      ddl-auto: validate 
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # ============================================================================
+  # Redis (Cache & Verrous)
+  # ============================================================================
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${redis.password}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+  
+
+  # ============================================================================
+  #FLYWAY (Migrations de la base de données)
+  # ============================================================================
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    out-of-order: false
+
+  # ============================================================================
+  # SECURITE - OAuth2 Resource Server
+  # ============================================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/adv-dev}
+
+  # ============================================================================
+  # MAIL (SMTP) - Notifications
+  # ============================================================================
+  mail:
+    host: ${adv/mail.host:smtp.brevo.com}
+    port: ${adv/smtp.port:587}
+    username: ${adv/smtp.username}
+    password: ${adv/smtp.password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: false
+  
+  # ============================================================================
+  # SERVLET - Upload de fichiers
+  # ============================================================================
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 20MB
+  
+  # ============================================================================
+  # SERVEUR
+  # ============================================================================
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-message: never
+    include-binding-errors: never
+
+# ============================================================================
+# SPRING BOOT ACTUATOR (Monitoring)
+# ============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: adv-backend
+      environment: ${spring.profiles.active}
+
+
+# ============================================================================
+# MINIO (Stockage d'objets pour les fichiers)
+# ============================================================================
+adv:
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${minio.access_key}
+    secret-key: ${minio.secret_key}
+    bucket-name: kyc-documents
+    bucket-avatars: avatars
+    bucket-billets: ebillets
+    presigned-url-expiry-minutes: 15
+
+  redis:
+    seat-lock-ttl-seconds: 600  # Durée de vie des verrous de sièges (5 minutes)
+    seat-lock-prefix: "lock:siege:"  # Préfixe pour les clés de verrouillage des sièges dans Redis
+
+  security:
+    hmac-secret: ${payunit.hmac_secret}
+    qr-code-expiry-minutes: ${security.qr-hmac-secret:CHANGE_ME} 
+
+  payunit:
+    api-key: ${payunit.api_key}
+    sandbox: true  
+    base-url: https://app.payunit.net/api
+    webhook-timeout-minutes: 3
+    poolling-interval-seconds: 10
+
+---  
+# ============================================================================
+# PROFIL : Dev, Prod, Test
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_ROOT_TOKEN}  
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${database.name}
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/adv-dev
+
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.adv: DEBUG    
+
+---
+# ============================================================================
+# PROFIL : docker (Pour la production en conteneur)
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/${database.name}
+
+  data:
+    redis:
+      host: redis
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8081/realms/adv-dev
+
+logging:
+  level:
+    org.springframework: WARN
+    com.adv: INFO
+  
+---
+# ============================================================================
+# PROFIL : test (Pour les tests unitaires et d'intégration)
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  cloud:
+    vault:
+      enabled: false  
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/adv_test
+    username: adv_test
+    password: adv_test_pass
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/adv-dev
+
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    com.adv: DEBUG
