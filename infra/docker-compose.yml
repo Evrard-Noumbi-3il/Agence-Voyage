@@ -54,6 +54,8 @@ services:
     container_name: adv-redis
     restart: unless-stopped
     command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"   
     env_file:
       - .env
     volumes:
