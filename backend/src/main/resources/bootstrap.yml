@@ -4,12 +4,40 @@ spring:
   cloud:
     vault:
       uri: ${VAULT_URI:http://localhost:8200}
-      authentication: APPROLE
-      app-role:
-        role-id: ${VAULT_ROLE_ID}
-        secret-id: ${VAULT_SECRET_ID}
       kv:
         enabled: true
         backend: secret
         default-context: adv
-        application-name: adv
+        application-name: ""
+      authentication: APPROLE
+      app-role:
+        role-id: ${VAULT_ROLE_ID:}
+        secret-id: ${VAULT_SECRET_ID:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    vault:
+      authentication: TOKEN
+      token: ${VAULT_ROOT_TOKEN:root}
+      kv:
+          profiles: ""
+      config:
+        lifecycle:
+          enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  cloud:
+    vault:
+      uri: http://vault:8200
+      authentication: APPROLE
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}

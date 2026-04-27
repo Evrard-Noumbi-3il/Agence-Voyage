@@ -62,6 +62,9 @@ v-exec policy write adv-backend - << 'EOF'
 path "secret/data/adv" {
   capabilities = ["read"]
 }
+path "secret/data/adv/*" {
+  capabilities = ["read"]
+}
 path "secret/metadata/adv" {
   capabilities = ["list"]
 }
@@ -146,4 +149,15 @@ echo "  v-exec kv put secret/adv/notifications \\"
 echo "    smtp_password=VOTRE_MOT_DE_PASSE_SMTP \\"
 echo "    firebase_sa_json='\$(cat chemin/vers/firebase-sa.json)'"
 echo ""
+echo "  remplacer "admin" et "password" et "root" par les vraies valeurs d'accès à MinIO du .env"
+echo " docker exec adv-minio mc alias set myminio http://localhost:9000 admin password"
+echo ""
+echo "  verifier la creation"
+echo "  docker exec adv-minio mc admin user svcacct list myminio admin"
+echo ""
+echo "  docker exec adv-minio mc admin user svcacct add myminio admin --access-key "adv-api-service" --secret-key "MaCleTresSecrete123!" "
+echo ""
+echo "  docker exec -i -e VAULT_TOKEN=root adv-vault vault kv patch secret/adv minio.access_key="adv-api-service" minio.secret_key="MaCleTresSecrete123!" "
+echo ""
+echo "  docker exec -i -e VAULT_TOKEN=root adv-vault vault kv patch secret/adv keycloak.client_secret=< adv-dev-realm.json -> adv-backend -> secret > "
 echo "=== Initialisation Vault terminée ==="

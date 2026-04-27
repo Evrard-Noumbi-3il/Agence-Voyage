@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.filter.ForwardedHeaderFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -33,6 +34,15 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+            .cors(cors -> cors
+                .configurationSource(request -> {
+                    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfig.setAllowedOrigins(java.util.List.of("*")); // Permettre toutes les origines (mobile)
+                    corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    corsConfig.setAllowedHeaders(java.util.List.of("*"));
+                    return corsConfig;
+                })
+            )
             // Règles d'autorisation
             .authorizeHttpRequests(auth -> auth
                 // Endpoints publics — pas de JWT requis
@@ -52,6 +62,7 @@ public class SecurityConfig {
                 // Webhook PayUnit — authentifié par HMAC, pas JWT
                 .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
 
+                .requestMatchers("/api/test/**").authenticated()
                 // Tout le reste exige un JWT valide
                 .anyRequest().authenticated()
             )
@@ -64,6 +75,11 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    @Bean
+    public ForwardedHeaderFilter forwardedHeaderFilter() {
+        return new ForwardedHeaderFilter();
     }
 
     @Bean
