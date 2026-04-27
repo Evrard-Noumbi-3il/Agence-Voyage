@@ -17,7 +17,7 @@ import java.util.UUID;
 @Table(name = "journaux_activite")
 @Getter
 @Setter
-public final class JournalActivite {
+public class JournalActivite {
     private static final int MAX_ACTION_LENGTH = 50;
     private static final int MAX_IP_LENGTH = 45;
 

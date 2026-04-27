@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public final class SeatLockService {
+public class SeatLockService {
 
     private final StringRedisTemplate redis;
 

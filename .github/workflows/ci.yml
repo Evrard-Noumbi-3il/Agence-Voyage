@@ -87,7 +87,8 @@ jobs:
           SPRING_REDIS_HOST: localhost
           SPRING_REDIS_PORT: 6379
           SPRING_PROFILES_ACTIVE: test
-        run: mvn test -Pcoverage --no-transfer-progress
+        run: mvn test --no-transfer-progress 
+        # -Pcoverage
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
