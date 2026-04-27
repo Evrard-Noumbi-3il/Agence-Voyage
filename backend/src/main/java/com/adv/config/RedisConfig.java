@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-public class RedisConfig {
+public final class RedisConfig {
 
     /**
      * Template pour les verrous de sièges (clés/valeurs String)
@@ -16,7 +16,7 @@ public class RedisConfig {
      * Valeur : {utilisateur_id} (qui détient le verrou)
      */
     @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
+    public StringRedisTemplate stringRedisTemplate(final RedisConnectionFactory factory) {
         return new StringRedisTemplate(factory);
     }
 
@@ -24,7 +24,7 @@ public class RedisConfig {
      * Template générique pour les autres usages Redis
      */
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+    public RedisTemplate<String, Object> redisTemplate(final RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());

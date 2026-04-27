@@ -13,10 +13,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
-public class JwtRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+public final class JwtRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
     @Override
-    public Collection<GrantedAuthority> convert(Jwt jwt) {
+    public Collection<GrantedAuthority> convert(final Jwt jwt) {
         // Keycloak place les rôles dans : realm_access.roles
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
 
