@@ -16,16 +16,16 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)  // Active @PreAuthorize sur les services
-public class SecurityConfig {
+public final class SecurityConfig {
 
     private final JwtRoleConverter jwtRoleConverter;
 
-    public SecurityConfig(JwtRoleConverter jwtRoleConverter) {
-        this.jwtRoleConverter = jwtRoleConverter;
+    public SecurityConfig(final JwtRoleConverter pJwtRoleConverter) {
+        this.jwtRoleConverter = pJwtRoleConverter;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
             // Désactiver CSRF (API REST stateless — JWT)
             .csrf(AbstractHttpConfigurer::disable)
@@ -37,7 +37,7 @@ public class SecurityConfig {
             .cors(cors -> cors
                 .configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.setAllowedOrigins(java.util.List.of("*")); // Permettre toutes les origines (mobile)
+                    corsConfig.setAllowedOrigins(java.util.List.of("*")); 
                     corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(java.util.List.of("*"));
                     return corsConfig;

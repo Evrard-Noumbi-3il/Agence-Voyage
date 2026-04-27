@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-public class AuditService {
+public final class AuditService {
 
     /**
      * Enregistre une action dans journaux_activite.
@@ -25,18 +25,18 @@ public class AuditService {
      * @param details       Détails libres — ex: "voyage_id=xxx, siege=12A"
      * @param adresseIp     IP réelle extraite via ForwardedHeaderFilter
      */
-    
-    private static final Logger log = LoggerFactory.getLogger(AuditService.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(AuditService.class);
 
     private final JournalActiviteRepository journalRepository;
 
-    public AuditService(JournalActiviteRepository journalRepository) {
+    public AuditService(final JournalActiviteRepository journalRepository) {
         this.journalRepository = journalRepository;
     }
 
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void log(UUID utilisateurId, String action, String details, String adresseIp) {
+    public void log(final UUID utilisateurId, final String action, final  String details, final String adresseIp) {
         try {
             JournalActivite journal = JournalActivite.of(
                     utilisateurId,
@@ -47,7 +47,7 @@ public class AuditService {
             journalRepository.save(journal);
 
         } catch (Exception e) {
-            log.error("[AUDIT] Échec écriture journal — action={}, utilisateur={}, erreur={}",
+            LOG.error("[AUDIT] Échec écriture journal — action={}, utilisateur={}, erreur={}",
                     action, utilisateurId, e.getMessage());
         }
     }

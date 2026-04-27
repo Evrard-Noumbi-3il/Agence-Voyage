@@ -622,7 +622,7 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "redirectUris" : [ "mobile://*" ],
+    "redirectUris" : [ "mobile://", "exp://192.168.232.1:8082" ],
     "webOrigins" : [ "*" ],
     "notBefore" : 0,
     "bearerOnly" : false,

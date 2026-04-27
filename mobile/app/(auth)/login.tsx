@@ -21,14 +21,14 @@ export default function LoginScreen() {
     if (isAuthenticated) {
       router.replace('/(app)/home');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   // Traite la réponse Keycloak dès qu'elle arrive
   useEffect(() => {
     if (response) {
       handleAuthResponse();
     }
-  }, [response]);
+  }, [response, handleAuthResponse]);
 
   return (
     <View style={styles.container}>

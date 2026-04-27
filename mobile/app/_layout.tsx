@@ -20,7 +20,7 @@ function AuthGuard() {
       // Authentifié et sur login → home
       router.replace('/(app)/home');
     }
-  }, [isAuthenticated, segments]);
+  }, [isAuthenticated, segments, router]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
