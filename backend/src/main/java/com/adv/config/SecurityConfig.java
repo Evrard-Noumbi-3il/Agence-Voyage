@@ -16,7 +16,7 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)  // Active @PreAuthorize sur les services
-public final class SecurityConfig {
+public class SecurityConfig {
 
     private final JwtRoleConverter jwtRoleConverter;
 

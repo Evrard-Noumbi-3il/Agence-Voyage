@@ -56,6 +56,8 @@
             <property name="severity" value="warning"/>
             <property name="format" value="(TODO|FIXME|HACK|XXX):"/>
         </module>
-
+        <module name="DesignForExtension">
+            <property name="severity" value="ignore"/>
+        </module>
     </module>
 </module>

@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-public final class RedisConfig {
+public class RedisConfig {
 
     /**
      * Template pour les verrous de sièges (clés/valeurs String)

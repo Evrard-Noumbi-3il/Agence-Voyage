@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-public final class AuditService {
+public class AuditService {
 
     /**
      * Enregistre une action dans journaux_activite.
