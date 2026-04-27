@@ -77,6 +77,34 @@ Le projet suit une démarche de Shift-Left Security. Chaque modification de code
 
 4. Container Scan (Trivy) : Analyse de l'image Docker finale.
 
+# Stratégie de tests
+### Structure des packages de test (backend)
+ backend/src/test/java/com/gev/
+ ```bash
+  modules/
+    iam/
+      KeycloakIntegrationTest.java     ← TestContainers
+    booking/
+      SeatLockServiceTest.java         ← JUnit + Mockito
+      BookingServiceTest.java          ← JUnit + Mockito
+    payment/
+      PaymentServiceTest.java          ← WireMock (mock PayUnit)
+      PaymentIntegrationTest.java      ← TestContainers
+  common/
+    BaseIntegrationTest.java           ← Classe mère avec TestContainers
+```
+Configuration WireMock (mock PayUnit)
+```bash
+{
+  java// src/test/resources/wiremock/mappings/payunit-success.json
+  {
+    "request": { "method": "POST", "url": "/api/payments" },
+    "response": {
+      "status": 200,
+      "jsonBody": { "status": "SUCCES", "reference": "PAY-TEST-001" }
+  }
+}
+```
 # Documentation de Référence
 docs/conception/README.md
 

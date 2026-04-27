@@ -14,10 +14,10 @@ public class SeatLockService {
 
     private final StringRedisTemplate redis;
 
-    @Value("${gev.redis.seat-lock-ttl-seconds:600}")
+    @Value("${adv.redis.seat-lock-ttl-seconds:600}")
     private long lockTtlSeconds;
 
-    @Value("${gev.redis.seat-lock-prefix:lock:siege:}")
+    @Value("${adv.redis.seat-lock-prefix:lock:siege:}")
     private String lockPrefix;
 
     // Script Lua — SETNX atomique avec TTL

@@ -160,7 +160,7 @@ CREATE INDEX idx_colis_expediteur
 -- -----------------------------------------------------------------------------
 CREATE INDEX idx_colis_actifs
     ON colis(date_depot DESC)
-    WHERE statut_colis IN ('DEPOSE'::statut_colis_enum, 'EN_TRANSIT'::statut_colis_enum)
+    WHERE statut_colis IN ('DEPOSE'::statut_colis_enum, 'EN_TRANSIT'::statut_colis_enum);
 
 -- -----------------------------------------------------------------------------
 -- AVIS_VOYAGES — affichage des avis d'un voyage
