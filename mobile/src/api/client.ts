@@ -14,8 +14,8 @@ const API_URL = Platform.select({
 });
 
 const apiClient = axios.create({
-  baseURL: API_URL,
-  // baseURL: `http://${PC_IP}:8080`,
+  // baseURL: API_URL,
+  baseURL: `http://${PC_IP}:8080`,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' }
 });

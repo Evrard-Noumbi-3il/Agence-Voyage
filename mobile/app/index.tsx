@@ -1,39 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import apiClient from '../src/api/client';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter, Redirect } from 'expo-router';
+import { useSelector } from 'react-redux';
+import { RootState } from '../src/store/store';
 
+/**
+ * Point d'entrée principal de l'application.
+ * Ce composant décide s'il faut envoyer l'utilisateur vers le Login 
+ * ou vers l'interface principale (Home).
+ */
+export default function Index() {
+  const router = useRouter();
+  
+  const { isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);
 
-export default function TestConnexion() {
-  const [message, setMessage] = useState('En attente du backend...');
-  const [loading, setLoading] = useState(true);
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#E63946" />
+      </View>
+    );
+  }
 
-  useEffect(() => {
-    apiClient.get('/api/test/hello')
-      .then(response => {
-        setMessage(response.data.message);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error(error);
-        setMessage("Erreur de connexion : " + error.message);
-        setLoading(false);
-      });
-  }, []);
+  // Redirection automatique basée sur l'état d'authentification
+  // Si l'utilisateur est authentifié, on l'envoie vers le groupe (app) -> home
+  // Sinon, on l'envoie vers le groupe (auth) -> login
+  if (isAuthenticated) {
+    return <Redirect href="/(app)/home" />;
+  }
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Test de Connexion PFE</Text>
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <Text style={styles.result}>{message}</Text>
-      )}
-    </View>
-  );
+  return <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
-  result: { fontSize: 16, color: 'green', textAlign: 'center', padding: 20 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
 });

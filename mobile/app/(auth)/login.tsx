@@ -25,10 +25,10 @@ export default function LoginScreen() {
 
   // Traite la réponse Keycloak dès qu'elle arrive
   useEffect(() => {
-    if (response) {
+    if (response?.type === 'success') {
       handleAuthResponse();
     }
-  }, [response, handleAuthResponse]);
+  }, [response]);
 
   return (
     <View style={styles.container}>

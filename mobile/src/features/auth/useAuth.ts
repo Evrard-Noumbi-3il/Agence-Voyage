@@ -31,11 +31,12 @@ interface KeycloakJwt {
 
 export function useAuth() {
   const dispatch = useDispatch<AppDispatch>();
-
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'mobile',
-  });
-
+  const redirectUri = 'com.adv.app://callback';
+ // const redirectUri = AuthSession.makeRedirectUri({
+  //  scheme: 'com.adv.app',
+  //  path: 'callback'
+  // });
+  console.log("Ma Redirect URI envoyée :", redirectUri);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: CLIENT_ID,
@@ -49,7 +50,7 @@ export function useAuth() {
   // Appelé après le retour de Keycloak
   async function handleAuthResponse() {
     if (response?.type !== 'success') return;
-
+    console.log("Tentative d'échange pour le code :", response.params.code);
     dispatch(setLoading(true));
 
     try {
@@ -59,7 +60,7 @@ export function useAuth() {
           code: response.params.code,
           redirectUri,
           extraParams: {
-            code_verifier: request?.codeVerifier ?? '',
+            code_verifier: request?.codeVerifier || '',
           },
         },
         discovery
