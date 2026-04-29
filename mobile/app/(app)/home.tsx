@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   View, 
   Text, 
@@ -14,6 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />

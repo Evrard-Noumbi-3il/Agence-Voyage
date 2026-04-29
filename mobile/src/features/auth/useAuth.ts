@@ -71,6 +71,7 @@ export function useAuth() {
 
       // Décoder le JWT pour extraire sub et role
       const decoded = jwtDecode<KeycloakJwt>(accessToken);
+
       const utilisateurId = decoded.sub;
       const roles = decoded.realm_access?.roles ?? [];
       // On prend le premier rôle métier (VOYAGEUR, AGENT_AGENCE, etc.)
@@ -83,6 +84,9 @@ export function useAuth() {
       await SecureStore.setItemAsync(KEY_REFRESH_TOKEN, refreshToken);
 
       dispatch(setTokens({ accessToken, refreshToken, utilisateurId, role }));
+      console.log('[AUTH] Issuer dans le token:', (decoded as any).iss);
+      console.log('[AUTH] Sub:', decoded.sub);
+      console.log('[AUTH] Roles:', decoded.realm_access?.roles);
       console.log("TOKEN REÇU AVEC SUCCÈS ! Redirection en cours...");
     } catch (error) {
       console.error('[AUTH] Échec échange token :', error);

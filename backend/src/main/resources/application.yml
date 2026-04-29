@@ -186,7 +186,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8081/realms/adv-dev
+          issuer-uri: http://${PC_LOCAL_IP:192.168.1.89}:8081/realms/adv-dev
 
 
 logging:
