@@ -83,7 +83,7 @@ export function useAuth() {
       await SecureStore.setItemAsync(KEY_REFRESH_TOKEN, refreshToken);
 
       dispatch(setTokens({ accessToken, refreshToken, utilisateurId, role }));
-
+      console.log("TOKEN REÇU AVEC SUCCÈS ! Redirection en cours...");
     } catch (error) {
       console.error('[AUTH] Échec échange token :', error);
       dispatch(setLoading(false));
