@@ -1,0 +1,13 @@
+.adv-custom-bg {
+    background: linear-gradient(135deg, #121414 0%, #1e2020 100%);
+}
+
+/* Animation pour le glow de l'icône */
+.icon-glow-pulse {
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { opacity: 0.2; transform: scale(1.2); }
+    50% { opacity: 0.4; transform: scale(1.5); }
+    100% { opacity: 0.2; transform: scale(1.2); }
+}
