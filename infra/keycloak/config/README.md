@@ -79,3 +79,54 @@ docker cp adv-keycloak:/opt/keycloak/data/import/adv-dev-realm.json \
 Keycloak crée automatiquement son propre schéma "keycloak" dans PostgreSQL.
 Ne jamais modifier ce schéma manuellement.
 Les tables Flyway ADV sont dans le schéma "public".
+
+
+1. Configuration du Realm (adv-dev)
+Création du Realm : Mise en place d'un espace isolé nommé adv-dev pour ne pas utiliser le realm master.
+
+Login Settings : Activation du login par Email (en plus du nom d'utilisateur) et activation de l'option User Registration.
+
+2. Configuration du Client (adv-mobile)
+C'est le cœur de la communication avec ton application Expo.
+
+Client ID : Défini sur adv-mobile.
+
+Access Type / Capability Config :
+
+Standard Flow activé (pour le code d'authentification).
+
+Direct Access Grants activé (utile pour les tests API).
+
+Redirect URIs : Ajout de com.adv.app://callback pour permettre le retour automatique vers ton application mobile.
+
+Post Logout Redirect URIs : Configuration de la même URI (com.adv.app://callback) pour que le navigateur se ferme après la déconnexion.
+
+Web Origins : Configuré sur * (ou l'IP de ton mobile) pour éviter les erreurs CORS lors des échanges de tokens.
+
+3. Gestion des Rôles (Roles)
+Création des Rôles de Realm : Ajout des rôles métier qui correspondent à ton énumération SQL :
+
+VOYAGEUR (attribué par défaut).
+
+CHAUFFEUR.
+
+AGENT_AGENCE.
+
+ADMIN.
+
+Default Roles : Configuration pour que tout nouvel utilisateur inscrit reçoive automatiquement le rôle VOYAGEUR.
+
+4. Mappers de Jetons (Client Scopes)
+Pour que ton backend puisse lire les rôles, nous avons vérifié ou configuré :
+
+Audience Mapper : Ajout d'un mapper pour s'assurer que le champ aud (audience) du JWT inclut bien le nom du client ou du backend, évitant les erreurs 401/403.
+
+Roles Mapper : Vérification que les rôles sont bien inclus dans le claim realm_access du jeton d'accès (Access Token).
+
+5. Gestion des Utilisateurs (Users)
+Attributs personnalisés : (Si applicable) Ajout de champs comme le téléphone pour qu'ils soient récupérables via le JWT.
+
+Credentials : Configuration des mots de passe pour tes utilisateurs de test (ex: a@a.com).
+
+6. Sécurité & Tokens
+Validité du Token : Ajustement (si nécessaire) de la durée de vie de l'Access Token (souvent 5 minutes par défaut) et activation du Refresh Token (Offline Access) pour permettre à l'utilisateur de rester connecté sans ressaisir son mot de passe tous les jours.

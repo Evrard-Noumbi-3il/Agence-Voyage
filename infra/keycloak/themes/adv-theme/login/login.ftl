@@ -70,7 +70,7 @@
                     <div class="flex justify-between items-center px-1">
                         <label for="password" class="text-[10px] font-bold text-primary uppercase tracking-widest">Mot de passe</label>
                         <#if realm.resetPasswordAllowed>
-                            <a class="text-[10px] text-outline hover:text-primary uppercase" href="${url.loginResetCredentialsUrl}">Oublié ?</a>
+                            <a class="text-[10px] text-outline hover:text-primary uppercase transition-colors" href="${url.loginResetCredentialsUrl}">Oublié ?</a>
                         </#if>
                     </div>
                     <div class="relative">
@@ -90,6 +90,16 @@
                 </button>
             </form>
 
+            <#-- Section Inscription (Nouveau) -->
+            <#if realm.registrationAllowed && !registrationDisabled??>
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-outline">
+                        Nouveau voyageur ? 
+                        <a href="${url.registrationUrl}" class="text-primary font-bold hover:underline ml-1">S'inscrire ici</a>
+                    </p>
+                </div>
+            </#if>
+
             <#-- Social Providers (Google) -->
             <#if realm.password && social.providers??>
                 <div class="flex items-center my-8">
@@ -99,7 +109,7 @@
                 </div>
                 <div class="space-y-4">
                     <#list social.providers as p>
-                        <a href="${p.loginUrl}" class="w-full bg-[#282a2b] text-white font-semibold py-4 rounded-sm border border-white/5 flex justify-center items-center gap-3 text-sm">
+                        <a href="${p.loginUrl}" class="w-full bg-[#282a2b] text-white font-semibold py-4 rounded-sm border border-white/5 flex justify-center items-center gap-3 text-sm hover:bg-[#38393a] transition-colors">
                            <span>Continuer avec ${p.displayName}</span>
                         </a>
                     </#list>

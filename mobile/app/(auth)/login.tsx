@@ -5,15 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   StatusBar,
   ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router'; // AJOUTÉ
-import { useSelector } from 'react-redux'; // AJOUTÉ
+import { useRouter } from 'expo-router'; 
+import { useSelector } from 'react-redux'; 
 import { useAuth } from '../../src/features/auth/useAuth';
-import { RootState } from '../../src/store/store'; // AJOUTÉ
+import { RootState } from '../../src/store/store';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const router = useRouter();

@@ -11,7 +11,7 @@ spring:
   # Configuration de la base de données (Les valeurs réelles viendront de Vault)
   # =============================================================================
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${database.name}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${database.name}?stringtype=unspecified
     username: ${database.user}
     password: ${database.password}  
     driver-class-name: org.postgresql.Driver
@@ -21,7 +21,6 @@ spring:
       idle-timeout: 300000
       connection-timeout: 20000
       pool-name: AdvHikariPool
-
 
   # ============================================================================
   # JPA / Hibernate
@@ -165,6 +164,13 @@ adv:
     webhook-timeout-minutes: 3
     poolling-interval-seconds: 10
 
+  # ============================================================================
+  # KEYCLOAK - Configuration de sécurité OAuth2 Resource Server
+  # ============================================================================
+keycloak:
+  revocation-endpoint: ${KEYCLOAK_REVOCATION_URI:http://localhost:8081/realms/adv-dev/protocol/openid-connect/revoke}
+  client-id: adv-mobile
+
 ---  
 # ============================================================================
 # PROFIL : Dev, Prod, Test
@@ -215,6 +221,9 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://keycloak:8081/realms/adv-dev
+  
+  keycloak:
+    revocation-endpoint: http://keycloak:8080/realms/adv-dev/protocol/openid-connect/revoke
 
 logging:
   level:
