@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   View, 
   Text, 
@@ -7,13 +6,26 @@ import {
   Image, 
   TouchableOpacity, 
   TextInput,
-  SafeAreaView,
   StatusBar
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../src/store/store';
+import { useAuth } from '../../src/features/auth/useAuth';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+
+  const dispatch = useDispatch();
+  const { signOut } = useAuth();
+  const refreshToken = useSelector((state: RootState) => state.auth.refreshToken);
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+
+  const handleLogout = async () => {
+    signOut(accessToken, refreshToken);
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -56,6 +68,11 @@ export default function HomeScreen() {
           </View>
 
           {/* SEARCH FORM */}
+          <TouchableOpacity  onPress={handleLogout} >
+            <Text style={{ color: '#b1c7f2', fontSize: 14, fontWeight: 'bold' }}>
+              Se déconnecter
+            </Text>
+          </TouchableOpacity>
           <View style={styles.searchCard}>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>DEPARTURE</Text>
